@@ -4,7 +4,16 @@
 */
 
 function isPalindrome(str) {
-  return true;
+
+  let str1 = str.split("").reverse().join('').toLowerCase().replaceAll(' ', '').replace(/[^a-zA-Z0-9 ]/g, '');
+  // console.log(str1);
+  // console.log(str.toLowerCase().replaceAll(' ',''));
+
+  if (str1 === str.toLowerCase().replaceAll(' ', '').replace(/[^a-zA-Z0-9 ]/g, '')) {
+    return true;
+  }
+  return false;
 }
 
+// console.log(isPalindrome('A man a plan a canal Panama'))
 module.exports = isPalindrome;
