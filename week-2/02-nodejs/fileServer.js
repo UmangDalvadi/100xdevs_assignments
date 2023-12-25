@@ -17,5 +17,38 @@ const fs = require('fs');
 const path = require('path');
 const app = express();
 
+app.use(express.json());
+
+app.get("/files", (req, res) => {
+
+  // fs.readdir("./files/", (err, data) => { ---> It gives error when we execute this script from other dir path 
+
+  fs.readdir(path.join(__dirname, './files/'), (err, data) => {
+    if (err) {
+      res.status(500).json({ error: 'fail to retrive file' })
+    }
+    res.send(data);
+  });
+
+});
+
+app.get('/file/:fileName', (req, res) => {
+
+  const fileName = req.params.fileName;
+  //Don't use variable name like "path"
+  //Inside path.join, if u use "__filrname" insted of "__dirname" than it's give error
+  fs.readFile(path.join(__dirname, `./files/${fileName}`), 'utf-8', (err, data) => {
+    if (err) {
+      res.status(404).send('File not found')
+    }
+    res.send(data);
+  })
+})
+
+app.all('*', (req, res) => {
+  res.status(404).send('route not found');
+})
+
+app.listen(3000)
 
 module.exports = app;
