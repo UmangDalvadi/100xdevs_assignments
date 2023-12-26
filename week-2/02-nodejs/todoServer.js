@@ -39,11 +39,185 @@
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-  const express = require('express');
-  const bodyParser = require('body-parser');
-  
-  const app = express();
-  
-  app.use(bodyParser.json());
-  
-  module.exports = app;
+const express = require('express');
+const bodyParser = require('body-parser');
+const path = require('path');
+const fs = require('fs');
+const { time } = require('console');
+const { title } = require('process');
+
+const app = express();
+
+app.use(bodyParser.json());
+
+let globleId = 1;
+
+app.get("/todos", (req, res) => {
+
+  filePath = path.join(__dirname, './todos.json');
+
+  fs.readFile(filePath, 'utf-8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: 'fail to retrive file' });
+    }
+    res.send(data);
+  })
+
+});
+
+app.get("/todos/:id", (req, res) => {
+
+  filePath = path.join(__dirname, './todos.json');
+  id = req.params.id;
+
+  fs.readFile(filePath, 'utf-8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: 'fail to post data' });
+    }
+
+    const parsedData = JSON.parse(data);
+
+    const item = parsedData.filter((x) => {
+      return x.id == id;
+    })
+
+    if (item.length > 0) {
+      res.status(200).send(item[0]);
+    }
+    else {
+      return res.status(404).send("Item not found");
+    }
+
+  })
+
+
+});
+
+app.post("/todos", (req, res) => {
+
+  filePath = path.join(__dirname, './todos.json');
+  title = req.body.title;
+  completed = req.body.completed;
+  description = req.body.description;
+  id = globleId; /////////////////
+  globleId = globleId + 1; ////////////////
+
+  fs.readFile(filePath, 'utf-8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: 'fail to post data' });
+    }
+
+    const parsedData = JSON.parse(data);
+    parsedData.push({
+      id: id, ////////////////
+      title: title,
+      description: description,
+      completed: completed
+    });
+    const stringData = JSON.stringify(parsedData);
+
+    fs.writeFile(filePath, stringData, err => {
+      if (err) {
+        return res.status(500).json({ error: 'fail to post data' });
+      }
+      res.status(201).json({ id: id }); /////////////////
+    })
+
+  })
+
+});
+
+app.put("/todos/:id", (req, res) => {
+
+  filePath = path.join(__dirname, './todos.json');
+  id = req.params.id;
+  title01 = req.body.title;
+  completed = req.body.completed;
+
+  fs.readFile(filePath, 'utf-8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: 'fail to post data' });
+    }
+
+    let parsedData = JSON.parse(data);
+
+    let item = parsedData.filter((x) => {
+      return x.id == id;
+    })
+
+    if (item.length > 0) {
+      for (let i = 0; i < parsedData.length; i++) {
+        if (parsedData[i].id == item[0].id) {
+          parsedData[i].title = title01;
+          parsedData[i].completed = completed;
+
+          const stringData = JSON.stringify(parsedData);
+
+          fs.writeFile(filePath, stringData, err => {
+            if (err) {
+              return res.status(500).json({ error: 'fail to update data' });
+            }
+            res.status(200).send(parsedData[i]);
+          })
+
+        }
+      }
+    }
+    else {
+      return res.status(404).send("Item not found");
+    }
+
+  })
+
+});
+
+app.delete("/todos/:id", (req, res) => {
+
+  filePath = path.join(__dirname, './todos.json');
+  id = req.params.id;
+
+  let temp = []
+
+  fs.readFile(filePath, 'utf-8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: 'fail to post data' });
+    }
+
+    let parsedData = JSON.parse(data);
+
+    let item = parsedData.filter((x) => {
+      return x.id == id;
+    })
+
+    if (item.length > 0) {
+      for (let i = 0; i < parsedData.length; i++) {
+        if (parsedData[i].id == item[0].id) {
+
+        } else {
+          temp.push(parsedData[i]);
+        }
+      }
+      parsedData = temp;
+      const stringData = JSON.stringify(parsedData);
+      fs.writeFile(filePath, stringData, err => {
+        if (err) {
+          return res.status(500).json({ error: 'fail to update data' });
+        }
+        res.status(200).send("Success");
+      })
+    }
+    else {
+      return res.status(404).send("Item not found");
+    }
+
+  })
+
+});
+
+app.all('*', (req, res) => {
+  res.status(404).send('Route not found');
+})
+
+app.listen(3000);
+
+module.exports = app;
