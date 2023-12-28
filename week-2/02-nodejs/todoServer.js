@@ -45,12 +45,20 @@ const path = require('path');
 const fs = require('fs');
 const { time } = require('console');
 const { title } = require('process');
+const { deserialize } = require('v8');
 
 const app = express();
 
 app.use(bodyParser.json());
 
-let globleId = 1;
+function findIndex(arr, id) {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].id === id) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 app.get("/todos", (req, res) => {
 
@@ -58,9 +66,9 @@ app.get("/todos", (req, res) => {
 
   fs.readFile(filePath, 'utf-8', (err, data) => {
     if (err) {
-      return res.status(500).json({ error: 'fail to retrive file' });
+      throw new err;
     }
-    res.send(data);
+    res.json(JSON.parse(data));
   })
 
 });
@@ -68,49 +76,45 @@ app.get("/todos", (req, res) => {
 app.get("/todos/:id", (req, res) => {
 
   filePath = path.join(__dirname, './todos.json');
-  id = req.params.id;
+  idVar = parseInt(req.params.id);
 
   fs.readFile(filePath, 'utf-8', (err, data) => {
     if (err) {
-      return res.status(500).json({ error: 'fail to post data' });
+      throw new err;
     }
 
     const parsedData = JSON.parse(data);
 
-    const item = parsedData.filter((x) => {
-      return x.id == id;
-    })
+    const findId = findIndex(parsedData, idVar);
 
-    if (item.length > 0) {
-      res.status(200).send(item[0]);
+    if (findId === -1) {
+      res.status(404).send();
     }
     else {
-      return res.status(404).send("Item not found");
+      res.json(parsedData[findId]);
     }
 
   })
-
-
 });
 
 app.post("/todos", (req, res) => {
 
   filePath = path.join(__dirname, './todos.json');
-  title = req.body.title;
-  completed = req.body.completed;
+  id = Math.floor(Math.random() * 1000000);
+  titleVar = req.body.title;
   description = req.body.description;
-  id = globleId; /////////////////
-  globleId = globleId + 1; ////////////////
+  completed = req.body.completed;
+
 
   fs.readFile(filePath, 'utf-8', (err, data) => {
     if (err) {
-      return res.status(500).json({ error: 'fail to post data' });
+      throw new err;
     }
 
-    const parsedData = JSON.parse(data);
+    let parsedData = JSON.parse(data);
     parsedData.push({
-      id: id, ////////////////
-      title: title,
+      id: id,
+      title: titleVar,
       description: description,
       completed: completed
     });
@@ -120,7 +124,7 @@ app.post("/todos", (req, res) => {
       if (err) {
         return res.status(500).json({ error: 'fail to post data' });
       }
-      res.status(201).json({ id: id }); /////////////////
+      res.status(201).json({ id: id });
     })
 
   })
@@ -131,12 +135,13 @@ app.put("/todos/:id", (req, res) => {
 
   filePath = path.join(__dirname, './todos.json');
   id = req.params.id;
-  title01 = req.body.title;
+  titleVar = req.body.title;
+  descriptionVar = req.body.description;
   completed = req.body.completed;
 
   fs.readFile(filePath, 'utf-8', (err, data) => {
     if (err) {
-      return res.status(500).json({ error: 'fail to post data' });
+      throw new err;
     }
 
     let parsedData = JSON.parse(data);
@@ -148,14 +153,15 @@ app.put("/todos/:id", (req, res) => {
     if (item.length > 0) {
       for (let i = 0; i < parsedData.length; i++) {
         if (parsedData[i].id == item[0].id) {
-          parsedData[i].title = title01;
+          parsedData[i].title = titleVar;
+          parsedData[i].description = descriptionVar;
           parsedData[i].completed = completed;
 
           const stringData = JSON.stringify(parsedData);
 
           fs.writeFile(filePath, stringData, err => {
             if (err) {
-              return res.status(500).json({ error: 'fail to update data' });
+              throw new err;
             }
             res.status(200).send(parsedData[i]);
           })
@@ -164,7 +170,7 @@ app.put("/todos/:id", (req, res) => {
       }
     }
     else {
-      return res.status(404).send("Item not found");
+      res.status(404).send();
     }
 
   })
@@ -180,7 +186,7 @@ app.delete("/todos/:id", (req, res) => {
 
   fs.readFile(filePath, 'utf-8', (err, data) => {
     if (err) {
-      return res.status(500).json({ error: 'fail to post data' });
+      throw new err;
     }
 
     let parsedData = JSON.parse(data);
@@ -198,26 +204,28 @@ app.delete("/todos/:id", (req, res) => {
         }
       }
       parsedData = temp;
+
       const stringData = JSON.stringify(parsedData);
+
       fs.writeFile(filePath, stringData, err => {
         if (err) {
-          return res.status(500).json({ error: 'fail to update data' });
+          throw new err;
         }
-        res.status(200).send("Success");
+        res.status(200).send();
       })
     }
     else {
-      return res.status(404).send("Item not found");
+      return res.status(404).send();
     }
 
   })
 
 });
 
-app.all('*', (req, res) => {
-  res.status(404).send('Route not found');
+app.use((req, res, next) => {
+  res.status(404).send();
 })
 
-app.listen(3000);
+// app.listen(3000);
 
 module.exports = app;
